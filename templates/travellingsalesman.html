@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travelling Salesman Problem</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            color: white;
+        }
+        .canvas-container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 2rem 0;
+        }
+        canvas {
+            background: white;
+            border-radius: 8px;
+        }
+        .controls {
+            margin: 2rem 0;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            background: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: scale(1.05);
+            background: #f0f0f0;
+        }
+        .game-container {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-start;
+            justify-content: center;
+            margin: 2rem 0;
+        }
+        
+        .distance-panel {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 10px;
+            color: white;
+        }
+        
+        .distance-table {
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        
+        .distance-table th,
+        .distance-table td {
+            padding: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
+        
+        .distance-table th {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .status {
+            margin: 1rem 0;
+            font-size: 1.2rem;
+            transition: color 0.3s ease;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .home-btn {
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+        .home-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .salesman-icon {
+            width: 30px;
+            height: 30px;
+            fill: #4a4a4a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Travelling Salesman Game</h1>
+        <p>Connect cities to find the shortest possible route! Click cities to connect them and try to find the optimal path.</p>
+        
+        <div class="game-container">
+            <div class="canvas-container">
+                <canvas id="canvas" width="600" height="400"></canvas>
+            </div>
+            
+            <div class="distance-panel">
+                <h3>Distance Matrix</h3>
+                <div id="distance-matrix"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="generateRandomCities()">New Game</button>
+            <button onclick="solveDFS()">Show Optimal Solution</button>
+            <button onclick="checkSolution()">Check My Solution</button>
+            <button onclick="clearPath()">Clear Path</button>
+        </div>
+
+        <div class="status" id="status">Total Distance: 0</div>
+        <div class="solution-info" id="solution-info"></div>
+        
+        <a href="/" class="home-btn">Back to Home</a>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let cities = [];
+        let currentPath = [];
+        let visitedPaths = new Set();
+        let animationFrame;
+        let isAnimating = false;
+
+        // Salesman icon as SVG path
+        const salesmanSvg = `
+            <svg class="salesman-icon" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+            </svg>
+        `;
+
+        class City {
+            constructor(x, y, id) {
+                this.x = x;
+                this.y = y;
+                this.visited = false;
+                this.id = id;
+            }
+        }
+
+        let distances = {};
+let playerPath = [];
+let selectedCity = null;
+let totalDistance = 0;
+
+function calculateDistance(city1, city2) {
+    const dx = city1.x - city2.x;
+    const dy = city1.y - city2.y;
+    return Math.round(Math.sqrt(dx * dx + dy * dy));
+}
+
+function initializeDistances() {
+    cities.forEach((city1, i) => {
+        distances[i] = {};
+        cities.forEach((city2, j) => {
+            if (i !== j) {
+                distances[i][j] = calculateDistance(city1, city2);
+            }
+        });
+    });
+}
+
+function updateDistanceMatrix() {
+    const matrix = document.getElementById('distance-matrix');
+    let table = '<table class="distance-table"><tr><th>City</th>';
+    
+    // Header row
+    for (let i = 0; i < cities.length; i++) {
+        table += `<th>${i + 1}</th>`;
+    }
+    table += '</tr>';
+    
+    // Distance rows
+    for (let i = 0; i < cities.length; i++) {
+        table += `<tr><th>${i + 1}</th>`;
+        for (let j = 0; j < cities.length; j++) {
+            if (i === j) {
+                table += '<td>-</td>';
+            } else {
+                table += `<td>${distances[i][j]}</td>`;
+            }
+        }
+        table += '</tr>';
+    }
+    table += '</table>';
+    matrix.innerHTML = table;
+}
+
+function generateRandomCities() {
+            cities = [];
+            clearPath();
+            const numCities = 5;
+            const padding = 50;
+
+            for (let i = 0; i < numCities; i++) {
+                const x = padding + Math.random() * (canvas.width - 2 * padding);
+                const y = padding + Math.random() * (canvas.height - 2 * padding);
+                cities.push(new City(x, y, i));
+            }
+            initializeDistances();
+            updateDistanceMatrix();
+            drawCities();
+        }
+
+        function drawCities() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw player paths
+            if (playerPath.length > 1) {
+                for (let i = 0; i < playerPath.length; i += 2) {
+                    const city1 = cities[playerPath[i]];
+                    const city2 = cities[playerPath[i + 1]];
+                    const distance = distances[city1.id][city2.id];
+
+                    ctx.beginPath();
+                    ctx.moveTo(city1.x, city1.y);
+                    ctx.lineTo(city2.x, city2.y);
+                    ctx.strokeStyle = '#4CAF50';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Draw distance label
+                    const midX = (city1.x + city2.x) / 2;
+                    const midY = (city1.y + city2.y) / 2;
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(midX - 15, midY - 10, 30, 20);
+                    ctx.fillStyle = '#333';
+                    ctx.fillText(distance, midX, midY);
+                }
+            }
+
+            // Draw selected city connection preview
+            if (selectedCity !== null) {
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(selectedCity.x, selectedCity.y);
+                ctx.lineTo(canvas.width/2, canvas.height/2);
+                ctx.strokeStyle = '#666';
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // Draw cities
+            cities.forEach((city, index) => {
+                ctx.beginPath();
+                ctx.arc(city.x, city.y, 10, 0, Math.PI * 2);
+                ctx.fillStyle = city.visited ? '#4CAF50' : '#FF5722';
+                ctx.fill();
+                ctx.fillStyle = 'white';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(index + 1, city.x, city.y);
+            });
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function solveBFS() {
+            if (isAnimating) return;
+            isAnimating = true;
+            clearPath();
+            document.getElementById('status').textContent = 'Solving with BFS...';
+
+            const queue = [[0]];
+            visitedPaths.clear();
+
+            while (queue.length > 0 && isAnimating) {
+                const path = queue.shift();
+                const current = path[path.length - 1];
+
+                if (path.length === cities.length) {
+                    currentPath = path;
+                    drawCities();
+                    document.getElementById('status').textContent = 'Path found with BFS!';
+                    isAnimating = false;
+                    return;
+                }
+
+                for (let i = 0; i < cities.length; i++) {
+                    if (!path.includes(i)) {
+                        const newPath = [...path, i];
+                        const pathKey = newPath.join(',');
+                        if (!visitedPaths.has(pathKey)) {
+                            visitedPaths.add(pathKey);
+                            queue.push(newPath);
+                            currentPath = newPath;
+                            drawCities();
+                            await sleep(100);
+                        }
+                    }
+                }
+            }
+
+            if (isAnimating) {
+                document.getElementById('status').textContent = 'No solution found!';
+                isAnimating = false;
+            }
+        }
+
+        function solveDFS() {
+            function dfs(start, visited, path, currentDistance) {
+                if (path.length === cities.length && distances[path[path.length - 1]][start] !== undefined) {
+                    return {
+                        path: [...path, start],
+                        distance: currentDistance + distances[path[path.length - 1]][start]
+                    };
+                }
+
+                let bestSolution = null;
+                for (let i = 0; i < cities.length; i++) {
+                    if (!visited.has(i)) {
+                        visited.add(i);
+                        const newDistance = path.length === 0 ? 0 : currentDistance + distances[path[path.length - 1]][i];
+                        const solution = dfs(start, visited, [...path, i], newDistance);
+                        visited.delete(i);
+
+                        if (solution && (!bestSolution || solution.distance < bestSolution.distance)) {
+                            bestSolution = solution;
+                        }
+                    }
+                }
+                return bestSolution;
+            }
+
+            const solution = dfs(0, new Set([0]), [0], 0);
+            showSolution(solution, 'DFS');
+        }
+
+        function showSolution(solution, method) {
+            if (!solution) return;
+
+            const solutionInfo = document.getElementById('solution-info');
+            solutionInfo.style.display = 'block';
+            solutionInfo.innerHTML = `
+                <h3>${method} Solution</h3>
+                <p>Path: ${solution.path.map(i => i + 1).join(' → ')}</p>
+                <p>Total Distance: ${solution.distance}</p>
+            `;
+        }
+
+        function checkSolution() {
+            const dfsSolution = dfs(0, new Set([0]), [0], 0);
+            const status = document.getElementById('status');
+
+            if (playerPath.length < cities.length * 2 - 2) {
+                status.textContent = 'Please visit all cities before checking the solution!';
+                return;
+            }
+
+            if (totalDistance <= dfsSolution.distance) {
+                status.style.animation = 'none';
+                status.offsetHeight; // Trigger reflow
+                status.style.animation = 'pulse 0.5s ease-in-out 3';
+                status.style.color = '#4CAF50';
+                status.textContent = '🎉 Yay! You found the shortest path! 🎉';
+            } else {
+                status.style.color = 'white';
+                status.textContent = `Try again! Your distance (${totalDistance}) is greater than the optimal solution (${dfsSolution.distance}).`;
+            }
+        }
+        
+
+        function clearPath() {
+            currentPath = [];
+            playerPath = [];
+            totalDistance = 0;
+            selectedCity = null;
+            cities.forEach(city => city.visited = false);
+            drawCities();
+            document.getElementById('status').textContent = '';
+        }
+
+        // Initialize with random cities
+        generateRandomCities();
+
+        canvas.addEventListener('click', function(event) {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            cities.forEach(city => {
+                const dx = city.x - x;
+                const dy = city.y - y;
+                if (dx * dx + dy * dy < 100) { // 10px radius
+                    if (selectedCity === null) {
+                        selectedCity = city;
+                    } else if (selectedCity !== city) {
+                        playerPath.push(selectedCity.id);
+                        playerPath.push(city.id);
+                        totalDistance += distances[selectedCity.id][city.id];
+                        selectedCity = null;
+                    }
+                    drawCities();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

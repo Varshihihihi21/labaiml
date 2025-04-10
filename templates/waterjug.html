@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Water Jug Puzzle</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            color: white;
+        }
+        .jugs-container {
+            display: flex;
+            justify-content: center;
+            gap: 4rem;
+            margin: 2rem 0;
+        }
+        .jug {
+            position: relative;
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px solid white;
+            border-radius: 0 0 20px 20px;
+            transition: all 0.3s ease;
+        }
+        .water {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: rgba(0, 149, 255, 0.6);
+            transition: height 0.5s ease;
+            border-radius: 0 0 17px 17px;
+        }
+        .jug-label {
+            margin-top: 1rem;
+            font-size: 1.2rem;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        button {
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            background: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+        }
+        button:hover {
+            transform: scale(1.05);
+            background: #f0f0f0;
+        }
+        .status {
+            margin: 1rem 0;
+            font-size: 1.2rem;
+        }
+        .home-btn {
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+        .home-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Water Jug Puzzle</h1>
+        <p>Goal: Measure 4 liters of water using 3 and 5 liter jugs</p>
+        
+        <div class="jugs-container">
+            <div class="jug-wrapper">
+                <div class="jug" id="jug1" style="width: 100px; height: 160px;">
+                    <div class="water" id="water1" style="height: 0%"></div>
+                </div>
+                <div class="jug-label">3L Jug: <span id="jug1-value">0</span>L</div>
+            </div>
+            <div class="jug-wrapper">
+                <div class="jug" id="jug2" style="width: 120px; height: 200px;">
+                    <div class="water" id="water2" style="height: 0%"></div>
+                </div>
+                <div class="jug-label">5L Jug: <span id="jug2-value">0</span>L</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="fillJug(1)">Fill 3L Jug</button>
+            <button onclick="fillJug(2)">Fill 5L Jug</button>
+            <button onclick="emptyJug(1)">Empty 3L Jug</button>
+            <button onclick="emptyJug(2)">Empty 5L Jug</button>
+            <button onclick="pourWater(1, 2)">Pour 3L → 5L</button>
+            <button onclick="pourWater(2, 1)">Pour 5L → 3L</button>
+        </div>
+
+        <div class="status" id="status"></div>
+        <button onclick="resetPuzzle()" style="margin-bottom: 1rem;">Reset Puzzle</button>
+        <br>
+        <a href="/" class="home-btn">Back to Home</a>
+    </div>
+
+    <script>
+        const jug1Capacity = 3;
+        const jug2Capacity = 5;
+        let jug1Current = 0;
+        let jug2Current = 0;
+
+        function updateWaterLevels() {
+            document.getElementById('water1').style.height = `${(jug1Current/jug1Capacity) * 100}%`;
+            document.getElementById('water2').style.height = `${(jug2Current/jug2Capacity) * 100}%`;
+            document.getElementById('jug1-value').textContent = jug1Current;
+            document.getElementById('jug2-value').textContent = jug2Current;
+            
+            checkWinCondition();
+        }
+
+        function fillJug(jugNum) {
+            if (jugNum === 1) {
+                jug1Current = jug1Capacity;
+            } else {
+                jug2Current = jug2Capacity;
+            }
+            updateWaterLevels();
+        }
+
+        function emptyJug(jugNum) {
+            if (jugNum === 1) {
+                jug1Current = 0;
+            } else {
+                jug2Current = 0;
+            }
+            updateWaterLevels();
+        }
+
+        function pourWater(fromJug, toJug) {
+            if (fromJug === 1 && toJug === 2) {
+                const spaceInJug2 = jug2Capacity - jug2Current;
+                const amountToPour = Math.min(jug1Current, spaceInJug2);
+                jug2Current += amountToPour;
+                jug1Current -= amountToPour;
+            } else {
+                const spaceInJug1 = jug1Capacity - jug1Current;
+                const amountToPour = Math.min(jug2Current, spaceInJug1);
+                jug1Current += amountToPour;
+                jug2Current -= amountToPour;
+            }
+            updateWaterLevels();
+        }
+
+        function checkWinCondition() {
+            if (jug1Current === 4 || jug2Current === 4) {
+                document.getElementById('status').textContent = 'Congratulations! You solved the puzzle!';
+            } else {
+                document.getElementById('status').textContent = '';
+            }
+        }
+
+        function resetPuzzle() {
+            jug1Current = 0;
+            jug2Current = 0;
+            updateWaterLevels();
+            document.getElementById('status').textContent = '';
+        }
+
+        // Initialize the puzzle
+        updateWaterLevels();
+    </script>
+</body>
+</html>

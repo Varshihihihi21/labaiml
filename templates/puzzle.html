@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>8 Puzzle Game</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            color: white;
+        }
+        .puzzle-container {
+            display: inline-block;
+            margin: 2rem 0;
+        }
+        .puzzle-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .tile {
+            width: 100px;
+            height: 100px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #4a90e2;
+        }
+        .tile:hover {
+            transform: scale(1.05);
+        }
+        .empty {
+            background: transparent;
+            cursor: default;
+        }
+        .empty:hover {
+            transform: none;
+        }
+        .controls {
+            margin: 2rem 0;
+        }
+        button {
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            background: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 0.5rem 1rem 0.5rem;
+        }
+        button:hover {
+            transform: scale(1.05);
+            background: #f0f0f0;
+        }
+        .status {
+            margin: 1rem 0;
+            font-size: 1.2rem;
+        }
+        .solution-path {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            display: none;
+            overflow-x: auto;
+        }
+        .solution-grid-container {
+            display: flex;
+            gap: 2rem;
+            padding: 1rem;
+            align-items: center;
+        }
+        .solution-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 50px);
+            gap: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px;
+            border-radius: 8px;
+        }
+        .solution-tile {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #4a90e2;
+        }
+        .solution-empty {
+            background: transparent;
+        }
+        .solution-arrow {
+            font-size: 2rem;
+            color: white;
+        }
+        .home-btn {
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+        .home-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>8 Puzzle Game</h1>
+        <p>Slide the tiles to match the goal state: 1-2-3-4-5-6-7-8-empty</p>
+        
+        <div class="puzzle-container">
+            <div class="puzzle-grid" id="puzzle-grid"></div>
+        </div>
+
+        <div class="controls">
+            <button onclick="shufflePuzzle()">Shuffle</button>
+            <button onclick="showSolution()">Show Solution</button>
+            <button onclick="resetPuzzle()">Reset</button>
+        </div>
+
+        <div class="status" id="status"></div>
+        <div class="solution-path" id="solution-path"></div>
+        
+        <a href="/" class="home-btn">Back to Home</a>
+    </div>
+
+    <script>
+        let currentState = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+        const goalState = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+        
+        function createPuzzleGrid() {
+            const grid = document.getElementById('puzzle-grid');
+            grid.innerHTML = '';
+            
+            for (let i = 0; i < 9; i++) {
+                const tile = document.createElement('div');
+                tile.className = 'tile' + (currentState[i] === 0 ? ' empty' : '');
+                tile.textContent = currentState[i] || '';
+                tile.onclick = () => moveTile(i);
+                grid.appendChild(tile);
+            }
+        }
+
+        function moveTile(index) {
+            const emptyIndex = currentState.indexOf(0);
+            if (isValidMove(index, emptyIndex)) {
+                [currentState[index], currentState[emptyIndex]] = [currentState[emptyIndex], currentState[index]];
+                createPuzzleGrid();
+                checkWinCondition();
+            }
+        }
+
+        function isValidMove(index, emptyIndex) {
+            const validMoves = {
+                0: [1, 3],
+                1: [0, 2, 4],
+                2: [1, 5],
+                3: [0, 4, 6],
+                4: [1, 3, 5, 7],
+                5: [2, 4, 8],
+                6: [3, 7],
+                7: [4, 6, 8],
+                8: [5, 7]
+            };
+            return validMoves[emptyIndex].includes(index);
+        }
+
+        function shufflePuzzle() {
+            for (let i = 0; i < 100; i++) {
+                const emptyIndex = currentState.indexOf(0);
+                const validMoves = {
+                    0: [1, 3],
+                    1: [0, 2, 4],
+                    2: [1, 5],
+                    3: [0, 4, 6],
+                    4: [1, 3, 5, 7],
+                    5: [2, 4, 8],
+                    6: [3, 7],
+                    7: [4, 6, 8],
+                    8: [5, 7]
+                }[emptyIndex];
+                const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+                [currentState[emptyIndex], currentState[randomMove]] = [currentState[randomMove], currentState[emptyIndex]];
+            }
+            createPuzzleGrid();
+            document.getElementById('status').textContent = '';
+            document.getElementById('solution-path').style.display = 'none';
+        }
+
+        function resetPuzzle() {
+            currentState = [...goalState];
+            createPuzzleGrid();
+            document.getElementById('status').textContent = '';
+            document.getElementById('solution-path').style.display = 'none';
+        }
+
+        function checkWinCondition() {
+            if (currentState.every((value, index) => value === goalState[index])) {
+                document.getElementById('status').textContent = 'Congratulations! Puzzle solved!';
+            }
+        }
+
+        function manhattanDistance(state) {
+            let distance = 0;
+            for (let i = 0; i < 9; i++) {
+                if (state[i] !== 0) {
+                    const currentRow = Math.floor(i / 3);
+                    const currentCol = i % 3;
+                    const goalIndex = goalState.indexOf(state[i]);
+                    const goalRow = Math.floor(goalIndex / 3);
+                    const goalCol = goalIndex % 3;
+                    distance += Math.abs(currentRow - goalRow) + Math.abs(currentCol - goalCol);
+                }
+            }
+            return distance;
+        }
+
+        function getValidMoves(state) {
+            const emptyIndex = state.indexOf(0);
+            const moves = {
+                0: [1, 3],
+                1: [0, 2, 4],
+                2: [1, 5],
+                3: [0, 4, 6],
+                4: [1, 3, 5, 7],
+                5: [2, 4, 8],
+                6: [3, 7],
+                7: [4, 6, 8],
+                8: [5, 7]
+            }[emptyIndex];
+            return moves.map(move => {
+                const newState = [...state];
+                [newState[emptyIndex], newState[move]] = [newState[move], newState[emptyIndex]];
+                return newState;
+            });
+        }
+
+        function showSolution() {
+            const solution = findSolution(currentState);
+            if (solution) {
+                const solutionPath = document.getElementById('solution-path');
+                solutionPath.style.display = 'block';
+                solutionPath.innerHTML = '<h3>Optimal Solution Path:</h3><div class="solution-grid-container">' +
+                    solution.map((state, index) => 
+                        `<div class="solution-step">
+                            <div class="solution-grid">
+                                ${state.map(value => 
+                                    `<div class="solution-tile ${value === 0 ? 'solution-empty' : ''}">
+                                        ${value || ''}
+                                    </div>`
+                                ).join('')}
+                            </div>
+                            ${index < solution.length - 1 ? '<div class="solution-arrow">→</div>' : ''}
+                        </div>`
+                    ).join('') + '</div>';
+            }
+        }
+
+        function findSolution(initialState) {
+            const openSet = [{
+                state: initialState,
+                g: 0,
+                h: manhattanDistance(initialState),
+                parent: null
+            }];
+            const closedSet = new Set();
+
+            while (openSet.length > 0) {
+                openSet.sort((a, b) => (a.g + a.h) - (b.g + b.h));
+                const current = openSet.shift();
+                const currentStateStr = current.state.join(',');
+
+                if (current.state.every((val, idx) => val === goalState[idx])) {
+                    const path = [];
+                    let node = current;
+                    while (node) {
+                        path.unshift(node.state);
+                        node = node.parent;
+                    }
+                    return path;
+                }
+
+                closedSet.add(currentStateStr);
+
+                for (const nextState of getValidMoves(current.state)) {
+                    const nextStateStr = nextState.join(',');
+                    if (!closedSet.has(nextStateStr)) {
+                        const g = current.g + 1;
+                        const h = manhattanDistance(nextState);
+                        openSet.push({
+                            state: nextState,
+                            g: g,
+                            h: h,
+                            parent: current
+                        });
+                    }
+                }
+            }
+            return null;
+        }
+
+        // Initialize the puzzle
+        createPuzzleGrid();
+    </script>
+</body>
+</html>

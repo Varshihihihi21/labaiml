@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+        }
+        h1 {
+            color: white;
+            margin-bottom: 2rem;
+        }
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            gap: 10px;
+            margin: 2rem auto;
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            background: white;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            perspective: 1000px;
+        }
+        .cell.flip {
+            animation: flipCell 0.6s ease-out;
+        }
+        @keyframes flipCell {
+            0% { transform: rotateY(0deg); }
+            100% { transform: rotateY(360deg); }
+        }
+        .win-line {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.9);
+            transform-origin: left center;
+            height: 5px;
+            animation: drawLine 0.5s ease-out forwards;
+            transform: scaleX(0);
+        }
+        @keyframes drawLine {
+            to {
+                transform: scaleX(1);
+            }
+        }
+        .cell:hover {
+            background: #f0f0f0;
+            transform: scale(1.05);
+        }
+        .status {
+            color: white;
+            font-size: 1.5rem;
+            margin: 1rem 0;
+        }
+        .reset-btn {
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            background: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+        }
+        .reset-btn:hover {
+            transform: scale(1.1);
+            background: #f0f0f0;
+        }
+        .home-btn {
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+        .home-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .turn-popup {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+            transform: translateY(-100%);
+            animation: slideIn 0.5s forwards;
+            z-index: 1000;
+        }
+        @keyframes slideIn {
+            to {
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="turn-popup" id="turnPopup">Player X's turn</div>
+    <div class="container">
+        <h1>Tic Tac Toe</h1>
+        <div class="status" id="status">Player X's turn</div>
+        <div class="game-board" id="board">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+        <button class="reset-btn" onclick="resetGame()">Reset Game</button>
+        <br>
+        <a href="/" class="home-btn">Back to Home</a>
+    </div>
+
+    <script>
+        let currentPlayer = 'X';
+        let gameBoard = ['', '', '', '', '', '', '', '', ''];
+        let gameActive = true;
+
+        const winningCombinations = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
+
+        document.querySelectorAll('.cell').forEach(cell => {
+            cell.addEventListener('click', () => handleCellClick(cell));
+        });
+
+        function handleCellClick(cell) {
+            const index = cell.getAttribute('data-index');
+            if (gameBoard[index] === '' && gameActive) {
+                gameBoard[index] = currentPlayer;
+                cell.textContent = currentPlayer;
+                cell.style.color = currentPlayer === 'X' ? '#FF6B6B' : '#4ECDC4';
+                cell.classList.add('flip');
+                
+                if (checkWin()) {
+                    const winMessage = `Player ${currentPlayer} wins!`;
+                document.getElementById('status').textContent = winMessage;
+                document.getElementById('turnPopup').textContent = winMessage;
+                    gameActive = false;
+                    return;
+                }
+
+                if (gameBoard.every(cell => cell !== '')) {
+                    const drawMessage = 'Game Draw!';
+                document.getElementById('status').textContent = drawMessage;
+                document.getElementById('turnPopup').textContent = drawMessage;
+                    gameActive = false;
+                    return;
+                }
+
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                const turnMessage = `Player ${currentPlayer}'s turn`;
+                document.getElementById('status').textContent = turnMessage;
+                document.getElementById('turnPopup').textContent = turnMessage;
+            }
+        }
+
+        function checkWin() {
+            for (let combination of winningCombinations) {
+                if (combination.every(index => gameBoard[index] === currentPlayer)) {
+                    drawWinLine(combination);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function drawWinLine(combination) {
+            const board = document.getElementById('board');
+            const line = document.createElement('div');
+            line.className = 'win-line';
+            
+            const cell1 = document.querySelector(`[data-index="${combination[0]}"]`);
+            const cell3 = document.querySelector(`[data-index="${combination[2]}"]`);
+            const rect1 = cell1.getBoundingClientRect();
+            const rect3 = cell3.getBoundingClientRect();
+            
+            const boardRect = board.getBoundingClientRect();
+            const length = Math.sqrt(
+                Math.pow(rect3.left - rect1.left, 2) +
+                Math.pow(rect3.top - rect1.top, 2)
+            );
+            
+            const angle = Math.atan2(
+                rect3.top - rect1.top,
+                rect3.left - rect1.left
+            ) * 180 / Math.PI;
+            
+            line.style.width = `${length}px`;
+            line.style.left = `${rect1.left - boardRect.left}px`;
+            line.style.top = `${rect1.top - boardRect.top + rect1.height/2}px`;
+            line.style.transform = `rotate(${angle}deg)`;
+            
+            board.appendChild(line);
+        }
+        
+        function resetGame() {
+            gameBoard = ['', '', '', '', '', '', '', '', ''];
+            gameActive = true;
+            currentPlayer = 'X';
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.textContent = '';
+                cell.classList.remove('flip');
+            });
+            const winLine = document.querySelector('.win-line');
+            if (winLine) winLine.remove();
+            const resetMessage = `Player ${currentPlayer}'s turn`;
+            document.getElementById('status').textContent = resetMessage;
+            document.getElementById('turnPopup').textContent = resetMessage;
+        }
+    </script>
+</body>
+</html>
