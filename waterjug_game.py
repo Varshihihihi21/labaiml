@@ -6,8 +6,8 @@ import math
 pygame.init()
 
 # Constants
-WINDOW_WIDTH = 800
-WINDOW_HEIGHT = 600
+WINDOW_WIDTH = 1024
+WINDOW_HEIGHT = 768
 FPS = 60
 
 # Colors
@@ -15,6 +15,12 @@ WHITE = (255, 255, 255)
 BLUE = (0, 149, 255, 180)
 DARK_BLUE = (0, 100, 200)
 GRAY = (200, 200, 200)
+LIGHT_GRAY = (220, 220, 220)
+DARK_GRAY = (100, 100, 100)
+METALLIC = (192, 192, 192)
+METALLIC_DARK = (128, 128, 128)
+GOLD = (255, 215, 0)
+PASTEL_GREEN = (119, 221, 119)
 
 class WaterJug:
     def __init__(self, x, y, capacity, width, height):
@@ -31,22 +37,68 @@ class WaterJug:
         self.water_particles = []
 
     def draw(self, screen):
-        # Draw jug
-        pygame.draw.rect(screen, BLACK, (self.x, self.y, self.width, self.height), 3)
+        # Calculate water height once at the beginning
+        water_height = (self.current / self.capacity) * (self.height - 20)
         
-        # Draw water
-        water_height = (self.current / self.capacity) * self.height
+        # Determine outline color based on water level
+        outline_color = BLUE if water_height > 0 else WHITE
+        
+        # Draw jug body with curved bottom and shading
+        # Main body shadow
+        pygame.draw.rect(screen, DARK_GRAY, (self.x + 3, self.y + 3, self.width, self.height - 20))
+        pygame.draw.ellipse(screen, DARK_GRAY, (self.x + 3, self.y + self.height - 17, self.width, 40))
+        
+        # Main body highlight
+        pygame.draw.rect(screen, LIGHT_GRAY, (self.x, self.y, self.width - 3, self.height - 20))
+        pygame.draw.ellipse(screen, LIGHT_GRAY, (self.x, self.y + self.height - 20, self.width - 3, 40))
+        
+        # Jug outline
+        pygame.draw.rect(screen, outline_color, (self.x, self.y, self.width, self.height - 20), 3)
+        pygame.draw.ellipse(screen, outline_color, (self.x, self.y + self.height - 20, self.width, 40), 3)
+        
+        # Draw handle with shading
+        handle_width = 25
+        pygame.draw.arc(screen, DARK_GRAY, (self.x + self.width + 3, self.y + 43, handle_width, 60), -1.57, 1.57, 5)
+        pygame.draw.arc(screen, WHITE, (self.x + self.width, self.y + 40, handle_width, 60), -1.57, 1.57, 3)
+        
+        # Draw spout with shading
+        spout_points = [
+            (self.x + self.width - 20, self.y + 20),
+            (self.x + self.width + 15, self.y),
+            (self.x + self.width + 15, self.y + 30)
+        ]
+        shadow_points = [(x + 3, y + 3) for x, y in spout_points]
+        pygame.draw.polygon(screen, DARK_GRAY, shadow_points)
+        pygame.draw.polygon(screen, LIGHT_GRAY, spout_points)
+        pygame.draw.polygon(screen, WHITE, spout_points, 3)
+        
+        # Draw water with shading and curved bottom
         if water_height > 0:
-            water_rect = pygame.Rect(
-                self.x, 
-                self.y + self.height - water_height,
+            # Water shadow
+            shadow_rect = pygame.Rect(
+                self.x + 3,
+                self.y + self.height - 17 - water_height,
                 self.width,
                 water_height
             )
+            pygame.draw.rect(screen, DARK_BLUE, shadow_rect)
+            
+            # Main water body
+            water_rect = pygame.Rect(
+                self.x,
+                self.y + self.height - 20 - water_height,
+                self.width - 3,
+                water_height
+            )
             pygame.draw.rect(screen, BLUE, water_rect)
-
-        # Draw water particles
+            
+            # Curved water bottom
+            water_bottom = pygame.Rect(self.x, self.y + self.height - 20, self.width, 40)
+            pygame.draw.ellipse(screen, BLUE, water_bottom)
+                
+        # Draw water particles with glow effect
         for particle in self.water_particles:
+            pygame.draw.circle(screen, DARK_BLUE, (int(particle[0] + 2), int(particle[1] + 2)), 3)
             pygame.draw.circle(screen, BLUE, (int(particle[0]), int(particle[1])), 2)
 
     def update_position(self, x, y):
@@ -59,29 +111,53 @@ class WaterSource:
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.width = 60
-        self.height = 40
+        self.width = 40
+        self.height = 120
         self.rect = pygame.Rect(x, y, self.width, self.height)
         self.water_particles = []
 
     def draw(self, screen):
-        # Draw tap
-        pygame.draw.rect(screen, WHITE, self.rect, 3)
-        pygame.draw.rect(screen, WHITE, (self.x + 20, self.y + self.height, 20, 20))
+        # Draw main tap body
+        pygame.draw.rect(screen, METALLIC, (self.x, self.y, self.width, self.height))
+        pygame.draw.rect(screen, METALLIC_DARK, (self.x, self.y, self.width, self.height), 2)
+        
+        # Draw tap handle
+        handle_width = 30
+        handle_height = 15
+        pygame.draw.rect(screen, METALLIC, (self.x - handle_width + 10, self.y + 20, handle_width, handle_height))
+        pygame.draw.rect(screen, METALLIC_DARK, (self.x - handle_width + 10, self.y + 20, handle_width, handle_height), 2)
+        
+        # Draw spout
+        spout_points = [
+            (self.x + self.width, self.y + self.height - 40),
+            (self.x + self.width + 15, self.y + self.height - 40),
+            (self.x + self.width + 15, self.y + self.height - 20)
+        ]
+        pygame.draw.polygon(screen, METALLIC, spout_points)
+        pygame.draw.polygon(screen, METALLIC_DARK, spout_points, 2)
 
 class Drain:
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.width = 80
-        self.height = 20
+        self.width = 100
+        self.height = 30
         self.rect = pygame.Rect(x, y, self.width, self.height)
 
     def draw(self, screen):
-        pygame.draw.rect(screen, GRAY, self.rect)
-        for i in range(4):
-            pygame.draw.circle(screen, DARK_BLUE, 
-                             (self.x + 20 * i + 10, self.y + 10), 5)
+        # Draw main drain body
+        pygame.draw.rect(screen, METALLIC, self.rect)
+        pygame.draw.rect(screen, METALLIC_DARK, self.rect, 2)
+        
+        # Draw grate lines
+        for i in range(5):
+            x_pos = self.x + (i + 1) * (self.width / 6)
+            pygame.draw.line(screen, METALLIC_DARK, (x_pos, self.y), (x_pos, self.y + self.height), 2)
+            
+        # Draw horizontal grate lines
+        for i in range(2):
+            y_pos = self.y + (i + 1) * (self.height / 3)
+            pygame.draw.line(screen, METALLIC_DARK, (self.x, y_pos), (self.x + self.width, y_pos), 2)
 
 class Game:
     def __init__(self):
@@ -90,10 +166,10 @@ class Game:
         self.clock = pygame.time.Clock()
 
         # Create game objects
-        self.jug1 = WaterJug(200, 300, 3, 100, 160)  # 3L jug
-        self.jug2 = WaterJug(500, 300, 5, 120, 200)  # 5L jug
-        self.water_source = WaterSource(350, 100)
-        self.drain = Drain(360, 500)
+        self.jug1 = WaterJug(300, 400, 3, 100, 160)  # 3L jug
+        self.jug2 = WaterJug(600, 400, 5, 120, 200)  # 5L jug
+        self.water_source = WaterSource(100, 300)  # Moved to left side
+        self.drain = Drain(800, 600)  # Moved to bottom right
 
         self.selected_jug = None
         self.font = pygame.font.Font(None, 36)
@@ -176,10 +252,24 @@ class Game:
 
         # Draw victory message if won
         if self.has_won:
+            # Create gradient background for victory message
+            gradient_surface = pygame.Surface((400, 100))
+            for i in range(100):
+                alpha = 255 - (i * 2)
+                if alpha < 0: alpha = 0
+                color = (*PASTEL_GREEN[:3], alpha)
+                pygame.draw.rect(gradient_surface, color, (0, i, 400, 1))
+            
             victory_font = pygame.font.Font(None, 72)
-            victory_text = victory_font.render("Congratulations! You Won!", True, WHITE)
+            victory_text = victory_font.render("Congratulations! You Won!", True, GOLD)
             text_rect = victory_text.get_rect(center=(WINDOW_WIDTH//2, WINDOW_HEIGHT//2))
-            pygame.draw.rect(self.screen, (0, 100, 0), text_rect.inflate(20, 20))
+            
+            # Draw gradient background
+            gradient_rect = gradient_surface.get_rect(center=(WINDOW_WIDTH//2, WINDOW_HEIGHT//2))
+            gradient_surface.set_alpha(180)
+            self.screen.blit(gradient_surface, gradient_rect)
+            
+            # Draw text with golden color
             self.screen.blit(victory_text, text_rect)
 
         pygame.display.flip()
@@ -192,7 +282,7 @@ class Game:
             self.clock.tick(FPS)
 
         pygame.quit()
-        sys.exit()
+        return True
 
 if __name__ == "__main__":
     game = Game()
