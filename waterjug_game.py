@@ -32,7 +32,7 @@ class WaterJug:
 
     def draw(self, screen):
         # Draw jug
-        pygame.draw.rect(screen, WHITE, (self.x, self.y, self.width, self.height), 3)
+        pygame.draw.rect(screen, BLACK, (self.x, self.y, self.width, self.height), 3)
         
         # Draw water
         water_height = (self.current / self.capacity) * self.height
@@ -97,6 +97,7 @@ class Game:
 
         self.selected_jug = None
         self.font = pygame.font.Font(None, 36)
+        self.has_won = False
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -148,6 +149,11 @@ class Game:
         amount_to_transfer = min(from_jug.current, space_available)
         from_jug.current -= amount_to_transfer
         to_jug.current += amount_to_transfer
+        self.check_win_condition()
+
+    def check_win_condition(self):
+        if self.jug1.current == 4 or self.jug2.current == 4:
+            self.has_won = True
 
     def draw(self):
         self.screen.fill((110, 142, 251))  # Background color
@@ -167,6 +173,14 @@ class Game:
         # Draw goal text
         goal_text = self.font.render("Goal: Measure 4 liters of water", True, WHITE)
         self.screen.blit(goal_text, (WINDOW_WIDTH//2 - 150, 30))
+
+        # Draw victory message if won
+        if self.has_won:
+            victory_font = pygame.font.Font(None, 72)
+            victory_text = victory_font.render("Congratulations! You Won!", True, WHITE)
+            text_rect = victory_text.get_rect(center=(WINDOW_WIDTH//2, WINDOW_HEIGHT//2))
+            pygame.draw.rect(self.screen, (0, 100, 0), text_rect.inflate(20, 20))
+            self.screen.blit(victory_text, text_rect)
 
         pygame.display.flip()
 
